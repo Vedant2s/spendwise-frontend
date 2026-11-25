@@ -59,7 +59,7 @@ const RegisterPage = () => {
             });
 
             if (response?.token) {
-                navigate("/login", { replace: true });
+                navigate("/dashboard", { replace: true });
             } else {
                 navigate("/login", { replace: true });
             }
