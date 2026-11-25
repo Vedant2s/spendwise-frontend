@@ -1,13 +1,46 @@
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import CreateGoalForm from "../components/goals/CreateGoalForm";
+import Loader from "../components/common/Loader";
+import ErrorMessage from "../components/common/ErrorMessage";
 import { formatCurrency } from "../utils/currency";
 import { formatDate } from "../utils/date";
+import { getGoals } from "../api/goalApi";
 
 const GoalsPage = () => {
     const [goals, setGoals] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState("");
 
-    const handleGoalCreated = (newGoal) => {
-        setGoals((prev) => [newGoal, ...prev]);
+    const fetchGoals = useCallback(async () => {
+        try {
+            const data = await getGoals();
+            const goalList = Array.isArray(data)
+                ? data
+                : Array.isArray(data?.goals)
+                  ? data.goals
+                  : Array.isArray(data?.data)
+                    ? data.data
+                    : Array.isArray(data?.data?.goals)
+                      ? data.data.goals
+                      : [];
+            setGoals(goalList);
+        } catch (err) {
+            setError(
+                err.response?.data?.message ||
+                    err.response?.data?.error ||
+                    "Failed to load your goals."
+            );
+        } finally {
+            setLoading(false);
+        }
+    }, []);
+
+    useEffect(() => {
+        queueMicrotask(fetchGoals);
+    }, [fetchGoals]);
+
+    const handleGoalCreated = () => {
+        fetchGoals();
     };
 
     return (
@@ -24,7 +57,11 @@ const GoalsPage = () => {
                 <div className="card">
                     <div className="card-title">Savings Goals</div>
 
-                    {goals.length === 0 ? (
+                    <ErrorMessage message={error} onRetry={fetchGoals} />
+
+                    {loading ? (
+                        <Loader text="Loading goals..." />
+                    ) : goals.length === 0 ? (
                         <div className="empty-state">
                             Created goals will appear here.
                         </div>
